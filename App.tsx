@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { KHOREZM_2026_CALENDAR, KHOREZM_DISTRICTS, DUAS, DistrictOffset } from './constants';
 import { AppState, Message } from './types';
@@ -11,8 +12,7 @@ import {
   Sun,
   Moon,
   MapPin,
-  ChevronRight,
-  AlertCircle
+  ChevronRight
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -43,44 +43,32 @@ const App: React.FC = () => {
     }));
   }, [selectedDistrict]);
 
-  const todayIndex = useMemo(() => {
-    const months: Record<string, number> = { 'Фев': 1, 'Мар': 2 };
-    const idx = adjustedCalendar.findIndex(item => {
-      const [d, m] = item.date.split('-');
-      return parseInt(d) === currentTime.getDate() && months[m] === currentTime.getMonth() + 1;
-    });
-    return idx === -1 ? 0 : idx;
-  }, [currentTime, adjustedCalendar]);
-
   const statusInfo = useMemo(() => {
-    const todayData = adjustedCalendar[todayIndex];
+    const today = adjustedCalendar[0];
     const nowStr = currentTime.toTimeString().slice(0, 5);
     
-    if (nowStr < todayData.fajr) {
-      return { label: 'Saharlikgacha', time: todayData.fajr, color: 'from-blue-600 to-indigo-800' };
-    } else if (nowStr < todayData.maghrib) {
-      return { label: 'Iftorgacha', time: todayData.maghrib, color: 'from-emerald-600 to-teal-800' };
+    if (nowStr < today.fajr) {
+      return { label: 'Saharlikgacha', time: today.fajr, color: 'from-blue-600 to-indigo-800' };
+    } else if (nowStr < today.maghrib) {
+      return { label: 'Iftorgacha', time: today.maghrib, color: 'from-emerald-600 to-teal-800' };
     } else {
-      const nextDay = adjustedCalendar[todayIndex + 1] || adjustedCalendar[0];
-      return { label: 'Saharlikgacha (Ertaga)', time: nextDay.fajr, color: 'from-indigo-900 to-slate-900' };
+      const tomorrow = adjustedCalendar[1] || today;
+      return { label: 'Saharlikgacha (Ertaga)', time: tomorrow.fajr, color: 'from-indigo-900 to-slate-900' };
     }
-  }, [currentTime, adjustedCalendar, todayIndex]);
+  }, [currentTime, adjustedCalendar]);
 
   const handleSendMessage = async () => {
-    if (!chatInput.trim() || isTyping) return;
-    
+    if (!chatInput.trim()) return;
     const userMsg: Message = { role: 'user', text: chatInput };
-    const updatedHistory = [...chatHistory, userMsg];
-    
-    setChatHistory(updatedHistory);
+    setChatHistory(prev => [...prev, userMsg]);
     setChatInput('');
     setIsTyping(true);
     
     try {
-      const response = await getGeminiChatResponse(updatedHistory);
+      const response = await getGeminiChatResponse([...chatHistory, userMsg], chatInput);
       setChatHistory(prev => [...prev, { role: 'model', text: response }]);
     } catch (err) {
-      setChatHistory(prev => [...prev, { role: 'model', text: "Aloqada xatolik yuz berdi. Iltimos, birozdan so'ng qayta urinib ko'ring." }]);
+      setChatHistory(prev => [...prev, { role: 'model', text: "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring." }]);
     } finally {
       setIsTyping(false);
     }
@@ -121,7 +109,7 @@ const App: React.FC = () => {
         );
 
       case AppState.TODAY:
-        const todayData = adjustedCalendar[todayIndex]; 
+        const todayData = adjustedCalendar[0]; 
         return (
           <div className="space-y-6 animate-in fade-in duration-500">
             <div className={`bg-gradient-to-br ${statusInfo.color} p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden transition-all duration-700`}>
@@ -130,7 +118,7 @@ const App: React.FC = () => {
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-3xl font-black">{selectedDistrict.name}</h2>
-                    <p className="text-emerald-100/80 font-medium">{todayData.date}, 2026 • {todayData.day}-кун</p>
+                    <p className="text-emerald-100/80 font-medium">{todayData.date}, 2026 • 1447-hijriy</p>
                   </div>
                   <div className="bg-white/20 backdrop-blur-md p-2 rounded-xl">
                     <Moon size={24} />
@@ -197,7 +185,7 @@ const App: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {adjustedCalendar.map((day, idx) => (
-                    <tr key={idx} className={`${idx === todayIndex ? 'bg-emerald-50/50' : 'hover:bg-gray-50/50'} transition-colors`}>
+                    <tr key={idx} className={`${idx === 0 ? 'bg-emerald-50/50' : 'hover:bg-gray-50/50'} transition-colors`}>
                       <td className="px-6 py-4 font-bold text-emerald-700">{day.day}</td>
                       <td className="px-6 py-4 text-gray-500 font-medium">{day.date}</td>
                       <td className="px-6 py-4 text-center font-black text-gray-800">{day.fajr}</td>
@@ -259,7 +247,7 @@ const App: React.FC = () => {
                       ? 'bg-emerald-600 text-white rounded-tr-none' 
                       : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                   }`}>
-                    <p className="text-sm leading-relaxed font-medium whitespace-pre-wrap">{msg.text}</p>
+                    <p className="text-sm leading-relaxed font-medium">{msg.text}</p>
                   </div>
                 </div>
               ))}
@@ -280,7 +268,7 @@ const App: React.FC = () => {
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
                 placeholder="Savol bering..."
-                className="flex-1 px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all text-sm font-medium outline-none"
+                className="flex-1 px-6 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all text-sm font-medium"
               />
               <button 
                 onClick={handleSendMessage}
@@ -318,7 +306,7 @@ const App: React.FC = () => {
         </button>
       </header>
 
-      <main className="flex-1 p-5 overflow-y-auto">
+      <main className="flex-1 p-5">
         {renderContent()}
       </main>
 
