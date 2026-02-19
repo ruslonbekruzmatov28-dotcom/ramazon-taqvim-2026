@@ -4,7 +4,7 @@ import { Message } from "../types";
 export const getGeminiChatResponse = async (history: Message[]): Promise<string> => {
   try {
     // The API key MUST be obtained from the environment variable process.env.API_KEY
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
     
     const contents = history.map(msg => ({
       role: msg.role === 'user' ? 'user' : 'model',
