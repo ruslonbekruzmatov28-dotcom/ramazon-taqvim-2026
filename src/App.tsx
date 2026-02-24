@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { KHOREZM_2026_CALENDAR, KHOREZM_DISTRICTS, DUAS } from './constants';
-import { AppState, Message, DistrictOffset, CalendarDay } from './types';
+import { AppState, Message, DistrictOffset, CalendarDay, NotificationSettings } from './types';
 import { getGeminiChatResponse } from './services/geminiService';
 import {
   Calendar,
@@ -19,13 +19,32 @@ import {
   ChevronRight,
   Info,
   Timer,
-  Settings
+  Settings,
+  Bell,
+  BellOff,
+  Smartphone,
+  CheckCircle2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const App: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState<AppState>(AppState.TODAY);
-  const [selectedDistrict, setSelectedDistrict] = useState<DistrictOffset>(KHOREZM_DISTRICTS[0]);
+  const [currentTab, setCurrentTab] = useState<AppState>(() => {
+    const saved = localStorage.getItem('app_started');
+    return saved ? AppState.TODAY : AppState.WELCOME;
+  });
+  const [selectedDistrict, setSelectedDistrict] = useState<DistrictOffset>(() => {
+    const saved = localStorage.getItem('selected_district');
+    return saved ? JSON.parse(saved) : KHOREZM_DISTRICTS[0];
+  });
+  const [notifications, setNotifications] = useState<NotificationSettings>(() => {
+    const saved = localStorage.getItem('notifications');
+    return saved ? JSON.parse(saved) : {
+      enabled: false,
+      saharReminder: true,
+      iftorReminder: true,
+      reminderMinutes: 15
+    };
+  });
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -150,6 +169,69 @@ const App: React.FC = () => {
     alert('Ma\'lumot nusxalandi!');
   };
 
+  // Persistence
+  useEffect(() => {
+    localStorage.setItem('selected_district', JSON.stringify(selectedDistrict));
+  }, [selectedDistrict]);
+
+  useEffect(() => {
+    localStorage.setItem('notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) return;
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      setNotifications(prev => ({ ...prev, enabled: true }));
+    }
+  };
+
+  // Notification Check Loop
+  useEffect(() => {
+    if (!notifications.enabled) return;
+
+    const checkNotifications = () => {
+      const now = new Date();
+      const nowStr = now.toTimeString().slice(0, 5);
+      
+      // Check Sahar
+      if (notifications.saharReminder) {
+        const [h, m] = todayData.fajr.split(':').map(Number);
+        const reminderTime = new Date(now);
+        reminderTime.setHours(h, m - notifications.reminderMinutes, 0);
+        
+        if (now.getHours() === reminderTime.getHours() && now.getMinutes() === reminderTime.getMinutes() && now.getSeconds() === 0) {
+          new Notification("Saharlik yaqinlashmoqda!", {
+            body: `Saharlik vaqtiga ${notifications.reminderMinutes} daqiqa qoldi. Bugungi niyatni unutmang!`,
+            icon: '/favicon.ico'
+          });
+        }
+      }
+
+      // Check Iftor
+      if (notifications.iftorReminder) {
+        const [h, m] = todayData.maghrib.split(':').map(Number);
+        const reminderTime = new Date(now);
+        reminderTime.setHours(h, m - notifications.reminderMinutes, 0);
+        
+        if (now.getHours() === reminderTime.getHours() && now.getMinutes() === reminderTime.getMinutes() && now.getSeconds() === 0) {
+          new Notification("Iftorlik yaqinlashmoqda!", {
+            body: `Iftorlik vaqtiga ${notifications.reminderMinutes} daqiqa qoldi. Alloh qabul qilsin!`,
+            icon: '/favicon.ico'
+          });
+        }
+      }
+    };
+
+    const interval = setInterval(checkNotifications, 1000);
+    return () => clearInterval(interval);
+  }, [notifications, todayData]);
+
+  const handleStartApp = () => {
+    localStorage.setItem('app_started', 'true');
+    setCurrentTab(AppState.TODAY);
+  };
+
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     const userMsg: Message = { role: 'user', text: chatInput };
@@ -169,46 +251,184 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (currentTab) {
+      case AppState.WELCOME:
+        return (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="flex flex-col items-center justify-center min-h-[600px] text-center px-6 space-y-12"
+          >
+            <div className="relative">
+              <motion.div 
+                animate={{ 
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 6, 
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="bg-emerald-600 w-32 h-32 rounded-[2.5rem] flex items-center justify-center shadow-2xl shadow-emerald-200 relative z-10"
+              >
+                <Moon size={64} className="text-white fill-current" />
+              </motion.div>
+              <div className="absolute -inset-4 bg-emerald-100 rounded-[3rem] blur-2xl opacity-50 -z-0"></div>
+            </div>
+
+            <div className="space-y-4">
+              <h2 className="text-4xl font-black text-gray-900 tracking-tight">Ramazon 2026</h2>
+              <p className="text-gray-500 font-medium leading-relaxed max-w-xs mx-auto">
+                Xorazm viloyati uchun maxsus tayyorlangan Ramazon taqvimi va yordamchi ilovasi.
+              </p>
+            </div>
+
+            <div className="w-full space-y-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleStartApp}
+                className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-emerald-100 flex items-center justify-center gap-3"
+              >
+                BOSHLASH
+                <ChevronRight size={24} />
+              </motion.button>
+              
+              <div className="flex items-center justify-center gap-2 text-gray-400">
+                <Smartphone size={16} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Telegram uslubida kirish</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4 w-full pt-8">
+              {[
+                { icon: <Timer size={20} />, label: 'Taqvim' },
+                { icon: <Bell size={20} />, label: 'Eslatma' },
+                { icon: <MessageSquare size={20} />, label: 'AI Bot' }
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
+                    {item.icon}
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        );
+
       case AppState.REGION:
         return (
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="space-y-4"
+            className="space-y-8"
           >
-            <div className="flex items-center justify-between mb-4 px-2">
-              <div className="flex items-center gap-2">
-                <MapPin className="text-emerald-600" size={20} />
-                <h2 className="text-xl font-bold text-gray-800">Hududni tanlang</h2>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-4 px-2">
+                <div className="flex items-center gap-2">
+                  <MapPin className="text-emerald-600" size={20} />
+                  <h2 className="text-xl font-bold text-gray-800">Hududni tanlang</h2>
+                </div>
+                <button onClick={() => setCurrentTab(AppState.TODAY)} className="text-gray-400 hover:text-gray-600">
+                  <Settings size={20} />
+                </button>
               </div>
-              <button onClick={() => setCurrentTab(AppState.TODAY)} className="text-gray-400 hover:text-gray-600">
-                <Settings size={20} />
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                {KHOREZM_DISTRICTS.map(district => (
+                  <motion.button
+                    key={district.name}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedDistrict(district);
+                    }}
+                    className={`p-5 rounded-[2rem] border text-left transition-all duration-300 ${
+                      selectedDistrict.name === district.name
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xl shadow-emerald-100'
+                        : 'bg-white text-gray-700 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30'
+                    }`}
+                  >
+                    <div className="font-bold text-lg">{district.name}</div>
+                    <div className={`text-[10px] mt-2 font-medium ${selectedDistrict.name === district.name ? 'text-emerald-100' : 'text-gray-400'}`}>
+                      Sahar: {district.sahar >= 0 ? `+${district.sahar}` : district.sahar}m |
+                      Iftor: {district.iftor >= 0 ? `+${district.iftor}` : district.iftor}m
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 pb-24">
-              {KHOREZM_DISTRICTS.map(district => (
-                <motion.button
-                  key={district.name}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setSelectedDistrict(district);
-                    setCurrentTab(AppState.TODAY);
-                  }}
-                  className={`p-5 rounded-[2rem] border text-left transition-all duration-300 ${
-                    selectedDistrict.name === district.name
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-xl shadow-emerald-100'
-                      : 'bg-white text-gray-700 border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/30'
-                  }`}
-                >
-                  <div className="font-bold text-lg">{district.name}</div>
-                  <div className={`text-[10px] mt-2 font-medium ${selectedDistrict.name === district.name ? 'text-emerald-100' : 'text-gray-400'}`}>
-                    Sahar: {district.sahar >= 0 ? `+${district.sahar}` : district.sahar}m |
-                    Iftor: {district.iftor >= 0 ? `+${district.iftor}` : district.iftor}m
+
+            <div className="space-y-4 pb-24">
+              <div className="flex items-center gap-2 px-2">
+                <Bell className="text-emerald-600" size={20} />
+                <h2 className="text-xl font-bold text-gray-800">Eslatmalar</h2>
+              </div>
+              
+              <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-black text-gray-800">Bildirishnomalar</h3>
+                    <p className="text-xs text-gray-400">Har kuni vaqtida eslatib turish</p>
                   </div>
-                </motion.button>
-              ))}
+                  <button 
+                    onClick={() => {
+                      if (!notifications.enabled) requestNotificationPermission();
+                      else setNotifications(prev => ({ ...prev, enabled: false }));
+                    }}
+                    className={`w-14 h-8 rounded-full transition-all relative ${notifications.enabled ? 'bg-emerald-600' : 'bg-gray-200'}`}
+                  >
+                    <motion.div 
+                      animate={{ x: notifications.enabled ? 24 : 4 }}
+                      className="absolute top-1 w-6 h-6 bg-white rounded-full shadow-sm"
+                    />
+                  </button>
+                </div>
+
+                {notifications.enabled && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="space-y-4 pt-4 border-t border-gray-50"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-600">Saharlik eslatmasi</span>
+                      <button 
+                        onClick={() => setNotifications(prev => ({ ...prev, saharReminder: !prev.saharReminder }))}
+                        className={`p-2 rounded-xl ${notifications.saharReminder ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-50 text-gray-300'}`}
+                      >
+                        {notifications.saharReminder ? <Bell size={18} /> : <BellOff size={18} />}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-gray-600">Iftorlik eslatmasi</span>
+                      <button 
+                        onClick={() => setNotifications(prev => ({ ...prev, iftorReminder: !prev.iftorReminder }))}
+                        className={`p-2 rounded-xl ${notifications.iftorReminder ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-50 text-gray-300'}`}
+                      >
+                        {notifications.iftorReminder ? <Bell size={18} /> : <BellOff size={18} />}
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-gray-400">
+                        <span>Vaqtdan oldin eslatish</span>
+                        <span>{notifications.reminderMinutes} daqiqa</span>
+                      </div>
+                      <input 
+                        type="range" 
+                        min="5" 
+                        max="60" 
+                        step="5"
+                        value={notifications.reminderMinutes}
+                        onChange={(e) => setNotifications(prev => ({ ...prev, reminderMinutes: parseInt(e.target.value) }))}
+                        className="w-full accent-emerald-600"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+              </div>
             </div>
           </motion.div>
         );
@@ -607,32 +827,34 @@ const App: React.FC = () => {
 
       <div className="w-full max-w-lg h-full sm:h-[850px] bg-[#FDFDFD] flex flex-col shadow-[0_30px_100px_rgba(0,0,0,0.15)] relative sm:rounded-[3.5rem] overflow-hidden border border-white/50 backdrop-blur-sm">
         {/* Header */}
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-gray-50 px-8 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <motion.div 
-              whileHover={{ rotate: 15 }}
-              className="bg-emerald-600 w-12 h-12 rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-emerald-100"
-            >
-              <Moon size={24} className="text-white fill-current" />
-            </motion.div>
-            <div>
-              <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">RAMAZON 2026</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] text-emerald-600 font-black uppercase tracking-[0.2em]">Xorazm Viloyati</span>
+        {currentTab !== AppState.WELCOME && (
+          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-gray-50 px-8 py-6 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div 
+                whileHover={{ rotate: 15 }}
+                className="bg-emerald-600 w-12 h-12 rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-emerald-100"
+              >
+                <Moon size={24} className="text-white fill-current" />
+              </motion.div>
+              <div>
+                <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">RAMAZON 2026</h1>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                  <span className="text-[10px] text-emerald-600 font-black uppercase tracking-[0.2em]">Xorazm Viloyati</span>
+                </div>
               </div>
             </div>
-          </div>
-          <motion.button 
-            whileHover={{ y: -1 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setCurrentTab(AppState.REGION)}
-            className="flex items-center gap-2 text-[11px] font-black text-emerald-800 bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100/50 hover:bg-emerald-100 transition-all shadow-sm"
-          >
-            <MapPin size={14} className="text-emerald-600" />
-            {selectedDistrict.name.toUpperCase()}
-          </motion.button>
-        </header>
+            <motion.button 
+              whileHover={{ y: -1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setCurrentTab(AppState.REGION)}
+              className="flex items-center gap-2 text-[11px] font-black text-emerald-800 bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100/50 hover:bg-emerald-100 transition-all shadow-sm"
+            >
+              <MapPin size={14} className="text-emerald-600" />
+              {selectedDistrict.name.toUpperCase()}
+            </motion.button>
+          </header>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 p-6 overflow-y-auto no-scrollbar pb-32">
@@ -642,13 +864,15 @@ const App: React.FC = () => {
         </main>
 
         {/* Navigation */}
-        <nav className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[92%] bg-white/90 backdrop-blur-3xl border border-gray-100/50 p-2 flex justify-around shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] z-50">
-          <NavButton active={currentTab === AppState.TODAY} onClick={() => setCurrentTab(AppState.TODAY)} icon={<Timer size={20} />} label="Bugun" />
-          <NavButton active={currentTab === AppState.MONTH} onClick={() => setCurrentTab(AppState.MONTH)} icon={<Calendar size={20} />} label="Taqvim" />
-          <NavButton active={currentTab === AppState.TASBIH} onClick={() => setCurrentTab(AppState.TASBIH)} icon={<Settings size={20} />} label="Tasbeh" />
-          <NavButton active={currentTab === AppState.DUA} onClick={() => setCurrentTab(AppState.DUA)} icon={<BookOpen size={20} />} label="Duolar" />
-          <NavButton active={currentTab === AppState.CHAT} onClick={() => setCurrentTab(AppState.CHAT)} icon={<MessageSquare size={20} />} label="AI" />
-        </nav>
+        {currentTab !== AppState.WELCOME && (
+          <nav className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[92%] bg-white/90 backdrop-blur-3xl border border-gray-100/50 p-2 flex justify-around shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] z-50">
+            <NavButton active={currentTab === AppState.TODAY} onClick={() => setCurrentTab(AppState.TODAY)} icon={<Timer size={20} />} label="Bugun" />
+            <NavButton active={currentTab === AppState.MONTH} onClick={() => setCurrentTab(AppState.MONTH)} icon={<Calendar size={20} />} label="Taqvim" />
+            <NavButton active={currentTab === AppState.TASBIH} onClick={() => setCurrentTab(AppState.TASBIH)} icon={<Settings size={20} />} label="Tasbeh" />
+            <NavButton active={currentTab === AppState.DUA} onClick={() => setCurrentTab(AppState.DUA)} icon={<BookOpen size={20} />} label="Duolar" />
+            <NavButton active={currentTab === AppState.CHAT} onClick={() => setCurrentTab(AppState.CHAT)} icon={<MessageSquare size={20} />} label="AI" />
+          </nav>
+        )}
       </div>
     </div>
   );
