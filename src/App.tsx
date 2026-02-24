@@ -294,7 +294,7 @@ const App: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="flex flex-col items-center justify-center min-h-[600px] text-center px-6 space-y-12"
+            className="flex flex-col items-center justify-center min-h-full text-center px-6 py-10 space-y-8 sm:space-y-12"
           >
             <div className="relative">
               <motion.div 
@@ -554,7 +554,7 @@ const App: React.FC = () => {
             className="space-y-6"
           >
             {/* Main Card */}
-            <div className={`bg-gradient-to-br ${statusInfo.color} p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden transition-all duration-1000`}>
+            <div className={`bg-gradient-to-br ${statusInfo.color} p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3rem] text-white shadow-2xl relative overflow-hidden transition-all duration-1000`}>
               {/* Decorative elements */}
               <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
               <div className="absolute bottom-[-10%] left-[-10%] w-48 h-48 bg-black/10 rounded-full blur-2xl"></div>
@@ -563,11 +563,11 @@ const App: React.FC = () => {
                 <div className="flex justify-between items-start mb-8">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <MapPin size={14} className="text-emerald-200" />
-                      <span className="text-xs font-bold uppercase tracking-widest text-emerald-100/80">{selectedDistrict.name}</span>
+                      <MapPin size={12} className="text-emerald-200" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-100/80">{selectedDistrict.name}</span>
                     </div>
-                    <h2 className="text-4xl font-black tracking-tight">{todayData.date}</h2>
-                    <p className="text-emerald-100/60 text-sm font-medium mt-1">Ramazonning {todayData.day}-kuni • 1447 h.</p>
+                    <h2 className="text-3xl sm:text-4xl font-black tracking-tight">{todayData.date}</h2>
+                    <p className="text-emerald-100/60 text-[10px] sm:text-sm font-medium mt-1">Ramazonning {todayData.day}-kuni • 1447 h.</p>
                   </div>
                   <div className="flex flex-col gap-2">
                     <div className="bg-white/10 backdrop-blur-xl p-4 rounded-[1.5rem] border border-white/20 shadow-xl">
@@ -592,7 +592,7 @@ const App: React.FC = () => {
                     {statusInfo.icon}
                     <span className="text-xs font-black uppercase tracking-[0.2em]">{statusInfo.label}</span>
                   </div>
-                  <div className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-4">
+                  <div className="text-4xl sm:text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-4">
                     {timeLeft}
                   </div>
                   
@@ -930,29 +930,29 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center p-0 sm:p-4 md:p-8 font-sans selection:bg-emerald-100 selection:text-emerald-900 overflow-hidden">
+    <div className="min-h-screen bg-[#F0F2F5] flex items-center justify-center p-0 sm:p-4 font-sans selection:bg-emerald-100 selection:text-emerald-900 overflow-x-hidden">
       {/* Background Atmosphere for Desktop */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden hidden lg:block">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-200/20 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-200/20 rounded-full blur-[120px]"></div>
       </div>
 
-      <div className="w-full max-w-lg h-full sm:h-[850px] bg-[#FDFDFD] flex flex-col shadow-[0_30px_100px_rgba(0,0,0,0.15)] relative sm:rounded-[3.5rem] overflow-hidden border border-white/50 backdrop-blur-sm">
+      <div className="w-full max-w-lg h-screen sm:h-[min(880px,96vh)] bg-[#FDFDFD] flex flex-col shadow-[0_30px_100px_rgba(0,0,0,0.15)] relative sm:rounded-[3.5rem] overflow-hidden border border-white/50 backdrop-blur-sm transition-all duration-500">
         {/* Header */}
         {currentTab !== AppState.WELCOME && (
-          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-gray-50 px-8 py-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-2xl border-b border-gray-50 px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between">
+            <div className="flex items-center gap-3 sm:gap-4">
               <motion.div 
                 whileHover={{ rotate: 15 }}
-                className="bg-emerald-600 w-12 h-12 rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-emerald-100"
+                className="bg-emerald-600 w-10 h-10 sm:w-12 sm:h-12 rounded-[1rem] sm:rounded-[1.25rem] flex items-center justify-center shadow-xl shadow-emerald-100"
               >
-                <Moon size={24} className="text-white fill-current" />
+                <Moon size={20} className="text-white fill-current" />
               </motion.div>
               <div>
-                <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">RAMAZON 2026</h1>
+                <h1 className="text-lg sm:text-xl font-black text-gray-900 tracking-tight leading-none">RAMAZON 2026</h1>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-[10px] text-emerald-600 font-black uppercase tracking-[0.2em]">Xorazm Viloyati</span>
+                  <span className="text-[8px] sm:text-[10px] text-emerald-600 font-black uppercase tracking-[0.2em]">Xorazm Viloyati</span>
                 </div>
               </div>
             </div>
@@ -960,16 +960,16 @@ const App: React.FC = () => {
               whileHover={{ y: -1 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setCurrentTab(AppState.REGION)}
-              className="flex items-center gap-2 text-[11px] font-black text-emerald-800 bg-emerald-50 px-5 py-2.5 rounded-2xl border border-emerald-100/50 hover:bg-emerald-100 transition-all shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 text-[9px] sm:text-[11px] font-black text-emerald-800 bg-emerald-50 px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl border border-emerald-100/50 hover:bg-emerald-100 transition-all shadow-sm"
             >
-              <MapPin size={14} className="text-emerald-600" />
+              <MapPin size={12} className="text-emerald-600" />
               {selectedDistrict.name.toUpperCase()}
             </motion.button>
           </header>
         )}
 
         {/* Main Content */}
-        <main className="flex-1 p-6 overflow-y-auto no-scrollbar pb-32">
+        <main className="flex-1 p-4 sm:p-6 overflow-y-auto no-scrollbar pb-32 relative">
           <AnimatePresence mode="wait">
             {renderContent()}
           </AnimatePresence>
@@ -993,12 +993,12 @@ const App: React.FC = () => {
 const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
   <button 
     onClick={onClick}
-    className={`flex-1 flex flex-col items-center py-4 gap-1.5 transition-all duration-500 rounded-[1.75rem] ${active ? 'text-emerald-700 bg-emerald-50/80 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
+    className={`flex-1 flex flex-col items-center py-3 sm:py-4 gap-1 sm:gap-1.5 transition-all duration-500 rounded-[1.5rem] sm:rounded-[1.75rem] ${active ? 'text-emerald-700 bg-emerald-50/80 shadow-inner' : 'text-gray-400 hover:text-gray-600'}`}
   >
     <motion.div animate={active ? { scale: 1.1, y: -2 } : { scale: 1, y: 0 }}>
-      {icon}
+      {React.cloneElement(icon as React.ReactElement, { size: 18 })}
     </motion.div>
-    <span className={`text-[9px] font-black uppercase tracking-widest ${active ? 'opacity-100' : 'opacity-60'}`}>{label}</span>
+    <span className={`text-[8px] sm:text-[9px] font-black uppercase tracking-widest ${active ? 'opacity-100' : 'opacity-60'}`}>{label}</span>
   </button>
 );
 
