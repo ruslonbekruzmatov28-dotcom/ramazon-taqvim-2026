@@ -18,6 +18,9 @@ export interface NotificationSettings {
   saharReminder: boolean;
   iftorReminder: boolean;
   reminderMinutes: number;
+  telegramEnabled: boolean;
+  telegramChatId: string;
+  telegramBotToken: string;
 }
 
 export interface Message {
