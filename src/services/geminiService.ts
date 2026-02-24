@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Message } from "../types";
 
 const SYSTEM_INSTRUCTION = `
@@ -9,45 +9,39 @@ Javoblaringizni o'zbek tilida (lotin alifbosida) bering.
 `;
 
 export async function getGeminiChatResponse(history: Message[], currentMessage: string): Promise<string> {
-  // 1. API kalitni process.env orqali xavfsiz olish
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = import.meta.env.GEMINI_API_KEY;
   
   if (!apiKey) {
-    console.error("Xatolik: GEMINI_API_KEY topilmadi!");
-    throw new Error("Gemini API key is missing");
+    console.error("Xatolik: API kalit topilmadi!");
+    return "Tizim sozlamalarida xatolik bor (API key topilmadi).";
   }
 
-  const genAI = new GoogleGenAI(apiKey);
-  
-  // 2. Model nomini barqaror versiyaga (gemini-1.5-flash) o'zgartirdik
+  const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
     systemInstruction: SYSTEM_INSTRUCTION,
   });
 
-  // 3. Tarixni Gemini formatiga moslash
-  const contents = history.map(msg => ({
-    role: msg.role === "user" ? "user" : "model", // role nomlarini aniqlashtirish
+  const chatHistory = history.map(msg => ({
+    role: msg.role === "user" ? "user" : "model",
     parts: [{ text: msg.text }]
   }));
 
   try {
-    // 4. To'g'ri chaqirish usuli (generateContent)
-    const result = await model.generateContent({
-      contents: contents,
+    const chat = model.startChat({
+      history: chatHistory,
       generationConfig: {
         temperature: 0.7,
-        topP: 0.95,
-        topK: 40,
         maxOutputTokens: 1024,
       },
     });
 
+    const result = await chat.sendMessage(currentMessage);
     const response = await result.response;
     return response.text();
     
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "Kechirasiz, hozirda ulanishda muammo bor. Iltimos, birozdan so'ng qayta urinib ko'ring.";
+  } catch (error: any) {
+    console.error("Gemini Error:", error);
+    return "Hozirda ulanishda muammo bor. Iltimos, birozdan so'ng qayta urinib ko'ring.";
   }
 }
