@@ -10,8 +10,7 @@ Javoblaringizni o'zbek tilida (lotin alifbosida) bering.
 
 export async function getGeminiChatResponse(history: Message[], currentMessage: string): Promise<string> {
   // 1. API kalitni process.env orqali xavfsiz olish
-  const apiKey = process.env.GEMINI_API_KEY;
-  
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
   if (!apiKey) {
     console.error("Xatolik: GEMINI_API_KEY topilmadi!");
     throw new Error("Gemini API key is missing");
