@@ -9,8 +9,7 @@ Javoblaringizni o'zbek tilida (lotin alifbosida) bering.
 `;
 
 export async function getGeminiChatResponse(history: Message[], currentMessage: string): Promise<string> {
-  const apiKey = import.meta.env.GEMINI_API_KEY;
-  
+const apiKey = process.env.GEMINI_API_KEY;  
   if (!apiKey) {
     console.error("Xatolik: API kalit topilmadi!");
     return "Tizim sozlamalarida xatolik bor (API key topilmadi).";
