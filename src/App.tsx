@@ -23,7 +23,8 @@ import {
   Bell,
   BellOff,
   Smartphone,
-  CheckCircle2
+  CheckCircle2,
+  SendHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -228,8 +229,14 @@ const App: React.FC = () => {
   }, [notifications, todayData]);
 
   const handleStartApp = () => {
-    localStorage.setItem('app_started', 'true');
-    setCurrentTab(AppState.TODAY);
+    // Add a small delay to simulate "bot starting"
+    const btn = document.activeElement as HTMLButtonElement;
+    if (btn) btn.disabled = true;
+    
+    setTimeout(() => {
+      localStorage.setItem('app_started', 'true');
+      setCurrentTab(AppState.TODAY);
+    }, 300);
   };
 
   const handleSendMessage = async () => {
@@ -286,33 +293,43 @@ const App: React.FC = () => {
 
             <div className="w-full space-y-4">
               <motion.button
-                whileHover={{ scale: 1.02 }}
+                whileHover={{ scale: 1.02, backgroundColor: '#059669' }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleStartApp}
-                className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-emerald-100 flex items-center justify-center gap-3"
+                className="w-full py-5 bg-emerald-600 text-white rounded-[2rem] font-black text-lg shadow-xl shadow-emerald-100 flex items-center justify-center gap-3 transition-colors"
               >
+                <SendHorizontal size={24} className="rotate-[-45deg]" />
                 BOSHLASH
-                <ChevronRight size={24} />
               </motion.button>
               
               <div className="flex items-center justify-center gap-2 text-gray-400">
-                <Smartphone size={16} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Telegram uslubida kirish</span>
+                <div className="w-8 h-px bg-gray-200"></div>
+                <span className="text-[10px] font-black uppercase tracking-widest">Botni ishga tushirish</span>
+                <div className="w-8 h-px bg-gray-200"></div>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4 w-full pt-8">
               {[
-                { icon: <Timer size={20} />, label: 'Taqvim' },
-                { icon: <Bell size={20} />, label: 'Eslatma' },
-                { icon: <MessageSquare size={20} />, label: 'AI Bot' }
+                { icon: <Timer size={20} />, label: 'Taqvim', tab: AppState.MONTH },
+                { icon: <Bell size={20} />, label: 'Eslatma', tab: AppState.REGION },
+                { icon: <MessageSquare size={20} />, label: 'AI Bot', tab: AppState.CHAT }
               ].map((item, i) => (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400">
+                <motion.button 
+                  key={i} 
+                  whileHover={{ y: -5 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => {
+                    localStorage.setItem('app_started', 'true');
+                    setCurrentTab(item.tab);
+                  }}
+                  className="flex flex-col items-center gap-2 group"
+                >
+                  <div className="w-14 h-14 bg-white border border-gray-100 rounded-2xl flex items-center justify-center text-gray-400 group-hover:text-emerald-600 group-hover:border-emerald-100 group-hover:bg-emerald-50 transition-all shadow-sm">
                     {item.icon}
                   </div>
-                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-400">{item.label}</span>
-                </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-gray-400 group-hover:text-emerald-600">{item.label}</span>
+                </motion.button>
               ))}
             </div>
           </motion.div>
