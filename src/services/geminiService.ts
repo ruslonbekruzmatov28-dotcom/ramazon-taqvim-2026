@@ -9,33 +9,43 @@ Javoblaringizni o'zbek tilida (lotin alifbosida) bering.
 `;
 
 export async function getGeminiChatResponse(history: Message[], currentMessage: string): Promise<string> {
-  // Foydalanuvchi taqdim etgan API kalit
- const apiKey = process.env.GEMINI_API_KEY;
+  // 1. API kalitni process.env orqali xavfsiz olish
+  const apiKey = process.env.GEMINI_API_KEY;
+  
   if (!apiKey) {
+    console.error("Xatolik: GEMINI_API_KEY topilmadi!");
     throw new Error("Gemini API key is missing");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const genAI = new GoogleGenAI(apiKey);
   
-  // Format history for Gemini
+  // 2. Model nomini barqaror versiyaga (gemini-1.5-flash) o'zgartirdik
+  const model = genAI.getGenerativeModel({
+    model: "gemini-1.5-flash",
+    systemInstruction: SYSTEM_INSTRUCTION,
+  });
+
+  // 3. Tarixni Gemini formatiga moslash
   const contents = history.map(msg => ({
-    role: msg.role,
+    role: msg.role === "user" ? "user" : "model", // role nomlarini aniqlashtirish
     parts: [{ text: msg.text }]
   }));
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+    // 4. To'g'ri chaqirish usuli (generateContent)
+    const result = await model.generateContent({
       contents: contents,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+      generationConfig: {
         temperature: 0.7,
         topP: 0.95,
         topK: 40,
-      }
+        maxOutputTokens: 1024,
+      },
     });
 
-    return response.text || "Kechirasiz, javob qaytarishda xatolik yuz berdi.";
+    const response = await result.response;
+    return response.text();
+    
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Kechirasiz, hozirda ulanishda muammo bor. Iltimos, birozdan so'ng qayta urinib ko'ring.";
