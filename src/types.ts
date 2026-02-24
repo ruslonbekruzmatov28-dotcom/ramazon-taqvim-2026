@@ -4,12 +4,20 @@
  */
 
 export enum AppState {
+  WELCOME = 'welcome',
   TODAY = 'today',
   MONTH = 'month',
   DUA = 'dua',
   CHAT = 'chat',
   REGION = 'region',
   TASBIH = 'tasbih'
+}
+
+export interface NotificationSettings {
+  enabled: boolean;
+  saharReminder: boolean;
+  iftorReminder: boolean;
+  reminderMinutes: number;
 }
 
 export interface Message {
