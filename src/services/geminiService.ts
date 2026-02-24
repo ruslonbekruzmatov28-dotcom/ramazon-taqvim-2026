@@ -1,4 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI } from "@google/generative-ai"; // Kutubxona nomini tekshiring
 import { Message } from "../types";
 
 const SYSTEM_INSTRUCTION = `
@@ -9,31 +9,34 @@ Javoblaringizni o'zbek tilida (lotin alifbosida) bering.
 `;
 
 export async function getGeminiChatResponse(history: Message[], currentMessage: string): Promise<string> {
-  // 1. API kalitni process.env orqali xavfsiz olish
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;  
+  // 1. Vite muhiti uchun API kalitni olish
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  
   if (!apiKey) {
-    console.error("Xatolik: GEMINI_API_KEY topilmadi!");
-    throw new Error("Gemini API key is missing");
+    console.error("Xatolik: VITE_GEMINI_API_KEY topilmadi!");
+    return "Tizim sozlamalarida xatolik bor (API key missing).";
   }
 
+  // 2. GoogleGenAI ni kalit bilan ishga tushirish (Obyekt emas, string uzatiladi)
   const genAI = new GoogleGenAI(apiKey);
   
-  // 2. Model nomini barqaror versiyaga (gemini-1.5-flash) o'zgartirdik
+  // 3. Modelni sozlash
   const model = genAI.getGenerativeModel({
     model: "gemini-1.5-flash",
     systemInstruction: SYSTEM_INSTRUCTION,
   });
 
-  // 3. Tarixni Gemini formatiga moslash
-  const contents = history.map(msg => ({
-    role: msg.role === "user" ? "user" : "model", // role nomlarini aniqlashtirish
+  // 4. Tarixni Gemini formatiga moslash (oxirgi xabarni qo'shmagan holda)
+  // Gemini chat historyda 'user' va 'model' rollari bo'lishi shart
+  const chatHistory = history.map(msg => ({
+    role: msg.role === "user" ? "user" : "model",
     parts: [{ text: msg.text }]
   }));
 
   try {
-    // 4. To'g'ri chaqirish usuli (generateContent)
-    const result = await model.generateContent({
-      contents: contents,
+    // 5. Chatni boshlash va xabarni yuborish
+    const chat = model.startChat({
+      history: chatHistory,
       generationConfig: {
         temperature: 0.7,
         topP: 0.95,
@@ -42,11 +45,19 @@ const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
       },
     });
 
+    const result = await chat.sendMessage(currentMessage);
     const response = await result.response;
+    
     return response.text();
     
-  } catch (error) {
-    console.error("Gemini API Error:", error);
+  } catch (error: any) {
+    console.error("Gemini API Error details:", error);
+    
+    // Agar kalit xato bo'lsa yoki limit tugagan bo'lsa
+    if (error.message?.includes("API_KEY_INVALID")) {
+      return "API kalit noto'g'ri. Iltimos, sozlamalarni tekshiring.";
+    }
+    
     return "Kechirasiz, hozirda ulanishda muammo bor. Iltimos, birozdan so'ng qayta urinib ko'ring.";
   }
 }
